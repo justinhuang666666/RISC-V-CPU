@@ -1,0 +1,10 @@
+# Expect: 0x1
+
+.text
+.globl main
+main: 
+    addi t0, t0, 0x0009
+    sltiu a0, t0, 0x000A
+    jr zero
+
+
