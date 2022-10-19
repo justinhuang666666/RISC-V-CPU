@@ -10,10 +10,16 @@ module mod_cpu (
     input logic [31:0] wb_dat_i,
     output logic [31:0] wb_dat_o,
     output logic wb_we_o,
+    //The write enable output indicates whether the current local bus cycle is a READ or WRITE cycle. 
     output logic [3:0] wb_sel_o,
+    //The select output array indicates where valid data is expected on the [DAT_I()]
+    //signal array during READ cycles, and where it is placed on the [DAT_O()] signal array
+    //during WRITE cycles. 
     output logic wb_stb_o,
     input logic wb_ack_i,
+    //indicate the normal termination of a bus cycle
     output logic wb_cyc_o
+    //The cycle output when asserted, indicates that a valid bus cycle is in progress
 );
 
 
