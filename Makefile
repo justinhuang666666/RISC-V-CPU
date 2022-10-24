@@ -26,12 +26,13 @@ test_control:
 	@./obj_dir/Vcontrol
 
 test_alu:
-	@verilator -Wall --cc --exe --build --trace --timescale 1s/1s test/test_alu.cpp rtl/alu.sv -Irtl
+	@verilator -Wall --cc --exe --build --trace --timescale 1s/1s test/test_alu.cpp rtl/mod_alu.sv -Irtl
 	@echo =========================================build complete=========================================
-	@./obj_dir/
+	@./obj_dir/Vmod_alu
 
 test_integration:
 	verilator -Wall --cc --exe --build --trace --top-module mod_cpu -o test_integration --timescale 1s/1s -Irtl test/test_integration.cpp rtl/*.sv
+
 
 build:
 	@verilator -Wall --cc --build --trace --top-module mod_cpu --timescale 1s/1s rtl/mod_*.sv -Irtl

@@ -10,12 +10,14 @@ module mod_mem_ctrl (
     input logic clk_i,
     input logic rst_i,
 
+    //instruction 
     // Expected to be held high until instruction_data_stb_o is high
-    input logic [`XLEN-1:0] instruction_address_i,
+    input logic [`XLEN-1:0] instruction_address_i, 
     input logic instruction_address_stb_i,
     output logic [`XLEN-1:0] instruction_readdata_o,
     output logic instruction_readdata_stb_o,
 
+    //data load store
     // Expected to be held high until loadstore_readdata_stb_o is high
     input logic [`XLEN-1:0] loadstore_address_i,
     // HIGH for either a load or store operation: assumed to be a load if
@@ -27,6 +29,7 @@ module mod_mem_ctrl (
     output logic [`XLEN-1:0] loadstore_readdata_o,
     output logic loadstore_stb_o,
 
+    //byte enable
     // TODO: remove this input and put it into this module if opcode is fed in.
     input  logic [`BYTEENABLE_WIDTH-1:0] loadstore_byteenable_i,
     output logic [`BYTEENABLE_WIDTH-1:0] memory_byteenable_o,
@@ -63,7 +66,7 @@ module mod_mem_ctrl (
   }
       current_state, next_state;
 
-  // Holds the current and previous state of Avalon's waitrequest parameter.
+  // Holds the current and previous state of waitrequest parameter.
   logic waitrequest_d;
   assign waitrequest_d = memory_waitrequest_i;
 
@@ -145,7 +148,7 @@ module mod_mem_ctrl (
       memory_byteenable_q <= 0;
       memory_read_q <= 0;
       memory_write_q <= 0;
-    end else if (current_state != next_state) begin
+    end else if (current_state != next_state) begin//when changing state
       case (next_state)
         WAIT_LOAD: begin
           memory_address_q <= loadstore_address_i;

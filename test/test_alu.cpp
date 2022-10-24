@@ -1,6 +1,6 @@
 #include <verilated.h> // Defines common routines
 #include <iostream>    // Need std::cout
-#include "Valu.h"      // From Verilating "top.v"
+#include "Vmod_alu.h"      // From Verilating "top.v"
 #include <verilated_vcd_c.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -8,7 +8,7 @@
 #include "defines.h"
 #include "../test/soft_cpu/soft_alu.h"
 
-Valu *alu; // Instantiation of model
+Vmod_alu *alu; // Instantiation of model
 VerilatedVcdC *m_trace;
 
 #define BOLDRED "\033[1m\033[31m"   /* Bold Red */
@@ -71,7 +71,7 @@ int main(int argc, char **argv)
     std::cout << "Beginning simulation :> \n";
 
     // Initialization sequence
-    alu = new Valu;
+    alu = new Vmod_alu;
     m_trace = new VerilatedVcdC;
     alu->trace(m_trace, 5);        // Setting waveform to trace to 5 levels
     m_trace->open("waveform.vcd"); // Setting output file

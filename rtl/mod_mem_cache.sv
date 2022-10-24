@@ -24,7 +24,7 @@ module mod_mem_cache (
     // I/O for talking to main memory.
     input logic [`XLEN-1:0] memory_readdata_i,
     // Signals that the read/write to memory is complete.
-    input logic memory_operation_stb_i,
+    input logic memory_operation_stb_i,//loadstore_stb
     output logic [`XLEN-1:0] memory_address_o,
     output logic [`XLEN-1:0] memory_writedata_o,
     output logic memory_write_o,
@@ -88,6 +88,7 @@ module mod_mem_cache (
   // The index of the cache row which corresponds to the bank bits in the
   // address.
   logic [CACHE_BANK_BITS-1:0] cache_row_number;
+  //register address_i
   assign cache_row_number = current_state == IDLE ? address_i[CACHE_BANK_BITS-1+2:2] : memory_address_q[CACHE_BANK_BITS-1+2:2];
 
   // The cache row which corresponds to the bank bits in the address.
@@ -135,7 +136,7 @@ module mod_mem_cache (
       memory_byteenable_q <= 0;
       memory_read_q <= 0;
       memory_write_q <= 0;
-    end else if (current_state != next_state) begin
+    end else if (current_state != next_state) begin//update register values after there is a change
       case (next_state)
         MISS: begin
           memory_address_q <= address_i;
@@ -190,7 +191,7 @@ module mod_mem_cache (
         next_state = IDLE;
       end
       MISS: begin
-        if (memory_operation_stb_i) begin
+        if (memory_operation_stb_i) begin//loadstore_stb
           // Data from memory will be valid in the next cycle.
           next_state = DONE;
         end else if (abort_i) begin

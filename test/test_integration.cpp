@@ -11,6 +11,7 @@
 #include "verilated.h"
 #include "verilated_vcd_c.h"
 
+
 #define RAM_OFFSET 0xBFC00000
 #define RAM_BYTES 4096
 #define MAX_TICKS 4096
@@ -58,10 +59,12 @@ public:
             len = data.size();
         }
         memcpy(this->memory, data.data(), len);
+        //.data() returns a direct pointer to the memory array used internally by the vector 
+        //to store its owned elements.
     }
 
 private:
-    uint8_t memory[RAM_BYTES];
+    uint8_t memory[RAM_BYTES];//4096*8 32KB
     IData get_mapped_address() { return this->wb_adr_i - RAM_OFFSET; }
     CData prev_clk;
     bool request_in_progress;

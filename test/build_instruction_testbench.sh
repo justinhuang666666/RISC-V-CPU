@@ -11,6 +11,7 @@ do
     rm "$f.out"
     riscv64-unknown-elf-objcopy -O binary -j .text "$f.out.reloc" "$f.bin"
     rm "$f.out.reloc"
-    od -v -An -t x1 "$f.bin" | awk '{$1=$1};1' > "$f.hex"
+    od -v -An -t x1 "$f.bin" | tr -s '\n' | awk '{$1=$1};1' > "$f.hex"
     rm "$f.bin"
 done
+
