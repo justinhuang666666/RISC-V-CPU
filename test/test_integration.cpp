@@ -183,7 +183,7 @@ void load_ram_file(std::string filepath, std::vector<uint8_t> &buffer)
 class TB
 {
 public:
-    unsigned long m_tickcount;
+    uint32_t m_tickcount;
     VerilatedVcdC *m_trace;
     Vmod_cpu *m_core;
     ModuleRAM *ram;

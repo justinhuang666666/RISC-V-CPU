@@ -30,6 +30,11 @@ test_alu:
 	@echo =========================================build complete=========================================
 	@./obj_dir/Vmod_alu
 
+test_mod_muldiv:
+	@verilator -Wall --cc --exe --build --trace --timescale 1s/1s test/test_mod_muldiv.cpp rtl/mod_muldiv.sv -Irtl
+	@echo =========================================build complete=========================================
+	@./obj_dir/Vmod_muldiv
+
 test_integration:
 	verilator -Wall --cc --exe --build --trace --top-module mod_cpu -o test_integration --timescale 1s/1s -Irtl test/test_integration.cpp rtl/*.sv
 

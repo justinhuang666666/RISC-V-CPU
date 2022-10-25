@@ -20,6 +20,7 @@
 #define OP_IMM          0b0010011
 #define OP_OP           0b0110011
 #define OP_MISC_MEM     0b0001111
+#define OP_MULDIV       0b0110011
 // -------------------------------------------------------------------------------------
 
 // RISC-V Instrcution funct3 
@@ -55,6 +56,14 @@
 #define FUNCT3_BLTU      0b110
 #define FUNCT3_BGEU      0b111
 #define FUNCT3_JALR      0b000 // JALR
+#define FUNCT3_MUL       0b000 //MUL
+#define FUNCT3_MULH      0b001
+#define FUNCT3_MULHSU    0b010
+#define FUNCT3_MULHU     0b011
+#define FUNCT3_DIV       0b100  //DIV
+#define FUNCT3_DIVU      0b101
+#define FUNCT3_REM       0b110
+#define FUNCT3_REMU      0b111
 // -------------------------------------------------------------------------------------
 
 // RISC-V Instruction funct7 
@@ -72,6 +81,7 @@
 #define FUNCT7_SRLI      0b0000000
 #define FUNCT7_SRAI      0b0100000
 #define FUNCT7_SLLI      0b0000000
+#define FUNCT7_MULDIV    0b0000001
 // -------------------------------------------------------------------------------------
 
 

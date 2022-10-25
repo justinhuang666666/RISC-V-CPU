@@ -38,7 +38,7 @@ for file in $(echo "$TEST_FILES" | sort); do
     }
 
     # Extract Expect Value
-    expected_value=$(head -n 1 "$file" | sed -n -e 's/^\(#\|\/\/\) Expect: //p')
+    expected_value=$(head -n 1 "$file" | sed -n -E 's/^(#|\/\/) Expect: //p')
     if [[ -z $expected_value ]]; then
         fail_file "Did not find expected value in test case"
         continue
