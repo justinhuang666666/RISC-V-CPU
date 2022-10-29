@@ -59,6 +59,7 @@ public:
             len = data.size();
         }
         memcpy(this->memory, data.data(), len);
+        //copy data into memory 
         //.data() returns a direct pointer to the memory array used internally by the vector 
         //to store its owned elements.
     }
@@ -83,6 +84,7 @@ void ModuleRAM::_eval()
         this->request_in_progress = false;
     }
 
+    //no valid bus cycle in progress
     if (this->wb_cyc_i == 0)
     {
         // Terminate the request
@@ -115,6 +117,9 @@ void ModuleRAM::_eval()
     if ((mapped_address > RAM_BYTES) && (wb_adr_i != 0))
     {
         if (this->wb_we_i)
+        //The write enable output indicates whether 
+        //the current local bus cycle is a READ or WRITE cycle. 
+        //1 for write and 0 for read
         {
             std::cout << "out of bounds write to " << std::hex << wb_adr_i << std::endl;
             throw std::runtime_error("out of bounds write");
@@ -137,7 +142,7 @@ void ModuleRAM::_eval()
     IData writedata_2 = (this->wb_dat_i >> 16) & 0xFF;
     IData writedata_3 = (this->wb_dat_i >> 24) & 0xFF;
 
-    if (this->wb_we_i)
+    if (this->wb_we_i)//write to RAM
     {
         IData write_0 = (byteenable_0 == 1) ? writedata_0 : ram_read_0;
         IData write_1 = (byteenable_1 == 1) ? writedata_1 : ram_read_1;
@@ -148,7 +153,7 @@ void ModuleRAM::_eval()
         this->memory[mapped_address + 2] = write_2;
         this->memory[mapped_address + 3] = write_3;
     }
-    else
+    else//read from RAM
     {
         this->wb_dat_o = (byteenable_3 ? ram_read_3 << 24 : 0) | (byteenable_2 ? ram_read_2 << 16 : 0) | (byteenable_1 ? ram_read_1 << 8 : 0) | (byteenable_0 ? ram_read_0 : 0);
 
@@ -170,12 +175,15 @@ void load_ram_file(std::string filepath, std::vector<uint8_t> &buffer)
 {
     std::ifstream file(filepath);
 
-    buffer.reserve(RAM_BYTES);
+    buffer.reserve(RAM_BYTES); 
+    //Requests that the vector capacity be at least enough to contain n elements.
 
     uint32_t temp = 0;
     while (!file.eof())
     {
         file >> std::hex >> temp;
+        // std::cout<<"----"<<std::endl;
+        // std::cout<<std::hex<<temp<<std::endl;
         buffer.push_back(temp);
     }
 }
@@ -295,6 +303,9 @@ public:
 uint32_t simulate(std::string hex_filepath)
 {
     auto destroyByteEnableEnv = std::getenv("SIM_DESTROY_BYTE_ENABLE");
+    //Searches the environment list provided by the host environment (the OS)
+    //for a string that matches the C string pointed to by env_var 
+    //and returns a pointer to the C string that is associated with the matched environment list member
     bool destroyOnReadWithByteEnable = destroyByteEnableEnv != NULL;
     TB *tb = new TB(hex_filepath, destroyOnReadWithByteEnable);
     tb->opentrace("trace.vcd");
@@ -350,24 +361,28 @@ int main(int argc, char **argv)
     // Initialize Verilators variables
     Verilated::commandArgs(argc, argv);
 
-    const auto sz_expected_value = std::getenv("SIM_EXPECTED_VALUE");
-    uint32_t expected_value = 0;
-    if (sz_expected_value != NULL)
-    {
-        sscanf(sz_expected_value, "%x", &expected_value);
-    }
+    std::cout<<"Begin simulation: "<<std::endl;
+    uint32_t result = simulate("./test/riscv/lw_hazard/01_lw_hazard.asm.hex");
+    std::cout<<"result: "<<result<<std::endl;
 
-    std::cout << "Running test; expecting 0x" << std::hex << expected_value << std::endl;
+    // const auto sz_expected_value = std::getenv("SIM_EXPECTED_VALUE");
+    // uint32_t expected_value = 0;
+    // if (sz_expected_value != NULL)
+    // {
+    //     sscanf(sz_expected_value, "%x", &expected_value);
+    // }
 
-    if (argc == 1)
-    {
-        return simulate_file_argv("./riscv/addi/01_add_positive.asm.hex", expected_value);
-    }
+    // std::cout << "Running test; expecting 0x" << std::hex << expected_value << std::endl;
 
-    if (argc != 2)
-    {
-        std::cout << "Exaclty one argument must be supplied" << std::endl;
-    }
+    // if (argc == 1)
+    // {
+    //     return simulate_file_argv("./riscv/addi/01_add_positive.asm.hex", expected_value);
+    // }
 
-    return simulate_file_argv(argv[1], expected_value);
+    // if (argc != 2)
+    // {
+    //     std::cout << "Exaclty one argument must be supplied" << std::endl;
+    // }
+
+    // return simulate_file_argv(argv[1], expected_value);
 }

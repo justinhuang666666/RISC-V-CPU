@@ -85,6 +85,13 @@ module mod_mem_cache (
   // The cache memory.  
   cache_row_t [CACHE_BANK_ENTRIES-1:0] cache_rows;
 
+  // always_ff begin
+  //     for (int i = 0; i < $size(cache_rows); i++) begin
+  //       $display("%d:",i," tag: ",cache_rows[i].tag," valid: ",cache_rows[i].valid," data: ",cache_rows[i].data);
+  //     end
+  // end
+
+
   // The index of the cache row which corresponds to the bank bits in the
   // address.
   logic [CACHE_BANK_BITS-1:0] cache_row_number;
@@ -270,6 +277,10 @@ module mod_mem_cache (
               // TODO: improve this by allowing SW/SB to write update cache
               cache_rows[cache_row_number].valid <= 0;
             end
+          end
+
+          for (int i = 0; i < $size(cache_rows); i++) begin
+              $display("%d:",i," tag: ",cache_rows[i].tag," valid: ",cache_rows[i].valid," data: %h",cache_rows[i].data);
           end
         end
         IDLE: begin

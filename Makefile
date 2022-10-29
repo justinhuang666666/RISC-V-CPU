@@ -38,6 +38,15 @@ test_mod_muldiv:
 test_integration:
 	verilator -Wall --cc --exe --build --trace --top-module mod_cpu -o test_integration --timescale 1s/1s -Irtl test/test_integration.cpp rtl/*.sv
 
+test_test:
+	@verilator -Wall --cc --exe --build --trace --top-module mod_cpu -o test --timescale 1s/1s -Irtl test/test_integration.cpp rtl/*.sv
+	@echo =========================================build complete=========================================
+	@./obj_dir/test
+
+test_cache:
+	@verilator -Wall --cc --exe --build --trace --timescale 1s/1s test/test_cache.cpp rtl/mod_mem_cache_test.sv -Irtl
+	@echo =========================================build complete=========================================
+	@./obj_dir/Vmod_mem_cache_test
 
 build:
 	@verilator -Wall --cc --build --trace --top-module mod_cpu --timescale 1s/1s rtl/mod_*.sv -Irtl

@@ -22,8 +22,8 @@ module mod_mem_store_data_aligner (
           default: aligned_value_o = register_value_i & 32'h000000FF;
         endcase
 
-        $display("got register value of %08x with offset %d - giving %08x", register_value_i,
-                 mem_load_store_byte_offset, aligned_value_o);
+        //$display("got register value of %08x with offset %d - giving %08x", register_value_i,
+        //         mem_load_store_byte_offset, aligned_value_o);
       end
       `FUNCT3_SH: begin
         aligned_value_o = (mem_load_store_byte_offset == 0) ? (register_value_i & 32'h0000FFFF) : (register_value_i << 16);

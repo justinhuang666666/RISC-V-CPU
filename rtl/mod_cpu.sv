@@ -54,6 +54,21 @@ module mod_cpu (
       .pc_o(pc)
   );
 
+  //used for debugging
+  always_ff begin
+    $display("-------------------------");
+    $display("pc: ",pc);
+    $display("is_instruction_read: ",is_instruction_read);
+    $display("instruction: %h",id_instruction_in);
+    if(pc_stall) begin
+      $display("PC is stalled");
+    end
+    if(if2id_stall_hazard) begin
+      $display("--------- if2id is stalled due to lw_hazard ---------");
+    end
+    $display("-------------------------");
+  end
+
   logic halt;
   logic [`XLEN-1:0] pc_1, pc_2;
   always_ff @(posedge clk_i) begin
@@ -66,6 +81,7 @@ module mod_cpu (
     end
   end
 
+  //terminate simulation when pc is zero for 3 sucessive clock cycle
   assign halt = (pc == 0 && pc_1 == 0 && pc_2 == 0) ? 1 : 0;
 
   always_ff @(posedge clk_i) begin
@@ -74,6 +90,7 @@ module mod_cpu (
     end
   end
 
+  //not stall or at the start of program
   logic is_instruction_read;
   assign is_instruction_read = !ex_branch_taken && (!pc_stall || pc == `PC_RESET_ADDR);
 
