@@ -44,10 +44,9 @@ test_test:
 	@./obj_dir/test
 
 test_cache:
-	@verilator -Wall --cc --exe --build --trace --timescale 1s/1s test/test_cache.cpp rtl/mod_mem_cache_test.sv -Irtl
+	@verilator -Wall --cc --exe --build --trace -o cache_set_associative --timescale 1s/1s test/test_cache_set_associative.cpp rtl/mod_mem_cache_set_associative.sv -Irtl
 	@echo =========================================build complete=========================================
-	@./obj_dir/Vmod_mem_cache_test
-
+	@./obj_dir/cache_set_associative
 build:
 	@verilator -Wall --cc --build --trace --top-module mod_cpu --timescale 1s/1s rtl/mod_*.sv -Irtl
 	@echo =========================================build complete=========================================
