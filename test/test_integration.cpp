@@ -50,6 +50,9 @@ public:
         this->prev_clk = clk_i;
         return;
     };
+    // void display(){
+    //     std::cout<<this->memory[0]<<this->memory[1]<<this->memory[2]<<this->memory[3]<<std::endl;
+    // }
 
     void load(std::vector<uint8_t> &data)
     {
@@ -208,6 +211,8 @@ public:
         std::vector<uint8_t> ram_buf;
         load_ram_file(hex_instruction_filepath, ram_buf);
         ram->load(ram_buf);
+        ram->display();
+
         ram->destroy_on_read_with_byteenable = destroy_on_read_with_byteenable;
         if (destroy_on_read_with_byteenable)
         {

@@ -175,6 +175,8 @@ module mod_mem_cache_set_associative (
         else begin
             case (state)
                 IDLE: begin
+                    $display(" ");
+                    $display("IDLE");
                     memory_address_reg <= address_i;
 
                     memory_address_q <= 0;
@@ -199,6 +201,8 @@ module mod_mem_cache_set_associative (
 					end
                 end
                 READ: begin
+                    $display(" ");
+                    $display("READ");
                     memory_address_q <= 0;
                     memory_writedata_q <= 0;
                     memory_byteenable_q <= 0;
@@ -236,6 +240,8 @@ module mod_mem_cache_set_associative (
                     endcase
                 end
                 WRITE: begin
+                    $display(" ");
+                    $display("WRITE");
                     memory_address_q <= 0;
                     memory_writedata_q <= 0;
                     memory_byteenable_q <= 0;
@@ -297,6 +303,8 @@ module mod_mem_cache_set_associative (
                     else begin
                         state <= state;
                     end
+                    $display(" ");
+                    $display("READMM");
                 end
                 UPDATEMM: begin
                     //write back LRU dirty cache line
@@ -323,6 +331,8 @@ module mod_mem_cache_set_associative (
                     else begin
                         state <= state;
                     end
+                    $display(" ");
+                    $display("UPDATEMM");
                 end
                 UPDATECACHE: begin
                     memory_address_q <= 0;
@@ -333,36 +343,59 @@ module mod_mem_cache_set_associative (
 
                     address_q <= 0;
                     readdata_q <= 0;
+                    if(rdwr) begin
+                        if(cache_row_1_used) begin
+                            //row 1 recently used update row 2
+                            cache_sets[cache_set_index].row2.valid <= 1'b1;
+                            cache_sets[cache_set_index].row2.used <= 1'b1;
+                            cache_sets[cache_set_index].row2.dirty <= 1'b0;
+                            cache_sets[cache_set_index].row2.tag <= address_tag;
+                            cache_sets[cache_set_index].row2.data <= memory_readdata_i;
 
-                    if(cache_row_1_used) begin
-                        //row 1 recently used update row 2
-                        cache_sets[cache_set_index].row2.valid <= 1'b1;
-                        cache_sets[cache_set_index].row2.used <= 1'b1;
-                        cache_sets[cache_set_index].row2.dirty <= 1'b0;
-                        cache_sets[cache_set_index].row2.tag <= address_tag;
-                        cache_sets[cache_set_index].row2.data <= memory_readdata_i;
+                            cache_sets[cache_set_index].row1.used <= 1'b0;
+                        end 
+                        else begin
+                            //row 2 used update row 1
+                            cache_sets[cache_set_index].row1.valid <= 1'b1;
+                            cache_sets[cache_set_index].row1.used <= 1'b1;
+                            cache_sets[cache_set_index].row1.dirty <= 1'b0;
+                            cache_sets[cache_set_index].row1.tag <= address_tag;
+                            cache_sets[cache_set_index].row1.data <= memory_readdata_i;
 
-                        cache_sets[cache_set_index].row1.used <= 1'b0;
+                            cache_sets[cache_set_index].row2.used <= 1'b0;
+                        end
                     end 
                     else begin
-                        //row 2 used update row 1
-                        cache_sets[cache_set_index].row1.valid <= 1'b1;
-                        cache_sets[cache_set_index].row1.used <= 1'b1;
-                        cache_sets[cache_set_index].row1.dirty <= 1'b0;
-                        cache_sets[cache_set_index].row1.tag <= address_tag;
-                        cache_sets[cache_set_index].row1.data <= memory_readdata_i;
+                        if(cache_row_1_used) begin
+                            //row 1 recently used update row 2
+                            cache_sets[cache_set_index].row2.valid <= 1'b1;
+                            cache_sets[cache_set_index].row2.used <= 1'b1;
+                            cache_sets[cache_set_index].row2.dirty <= 1'b0;
+                            cache_sets[cache_set_index].row2.tag <= address_tag;
+                            cache_sets[cache_set_index].row2.data <= writedata_i;
 
-                        cache_sets[cache_set_index].row2.used <= 1'b0;
+                            cache_sets[cache_set_index].row1.used <= 1'b0;
+                        end 
+                        else begin
+                            //row 2 used update row 1
+                            cache_sets[cache_set_index].row1.valid <= 1'b1;
+                            cache_sets[cache_set_index].row1.used <= 1'b1;
+                            cache_sets[cache_set_index].row1.dirty <= 1'b0;
+                            cache_sets[cache_set_index].row1.tag <= address_tag;
+                            cache_sets[cache_set_index].row1.data <= writedata_i;
+
+                            cache_sets[cache_set_index].row2.used <= 1'b0;
+                        end
                     end
 
                     state <= DONE;
                     $display(" ");
                     $display("UPDATECACHE");
-                    for (int i = 0; i < $size(cache_sets); i++) begin
-                        $display("set%d:",i);
-                        $display("valid: ",cache_sets[i].row1.tag," used: ",cache_sets[i].row1.used," dirty: ",cache_sets[i].row1.dirty," data: %h",cache_sets[i].row1.data);
-                        $display("valid: ",cache_sets[i].row2.tag," used: ",cache_sets[i].row2.used," dirty: ",cache_sets[i].row2.dirty," data: %h",cache_sets[i].row2.data);
-                    end
+                    // for (int i = 0; i < $size(cache_sets); i++) begin
+                    //     $display("set%d:",i);
+                    //     $display("valid: ",cache_sets[i].row1.tag," used: ",cache_sets[i].row1.used," dirty: ",cache_sets[i].row1.dirty," data: %h",cache_sets[i].row1.data);
+                    //     $display("valid: ",cache_sets[i].row2.tag," used: ",cache_sets[i].row2.used," dirty: ",cache_sets[i].row2.dirty," data: %h",cache_sets[i].row2.data);
+                    // end
                 end
                 DONE: begin
                     memory_writedata_q <= 0;
@@ -387,8 +420,8 @@ module mod_mem_cache_set_associative (
                     $display("DONE");
                     for (int i = 0; i < $size(cache_sets); i++) begin
                         $display("set%d:",i);
-                        $display("valid: ",cache_sets[i].row1.tag," used: ",cache_sets[i].row1.used," dirty: ",cache_sets[i].row1.dirty," data: %h",cache_sets[i].row1.data);
-                        $display("valid: ",cache_sets[i].row2.tag," used: ",cache_sets[i].row2.used," dirty: ",cache_sets[i].row2.dirty," data: %h",cache_sets[i].row2.data);
+                        $display("valid: ",cache_sets[i].row1.valid," used: ",cache_sets[i].row1.used," dirty: ",cache_sets[i].row1.dirty," data: %h",cache_sets[i].row1.data);
+                        $display("valid: ",cache_sets[i].row2.valid," used: ",cache_sets[i].row2.used," dirty: ",cache_sets[i].row2.dirty," data: %h",cache_sets[i].row2.data);
                     end
                 end
                 default: begin
