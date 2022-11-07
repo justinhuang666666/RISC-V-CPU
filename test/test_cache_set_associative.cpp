@@ -30,7 +30,7 @@ public:
     void eval(){
         this->memory_stb_o = 0;
         this->readdata_o = 0;
-
+        
         IData ram_read_0 = this->memory[this->memory_address_i];
         IData ram_read_1 = this->memory[this->memory_address_i + 1];
         IData ram_read_2 = this->memory[this->memory_address_i + 2];
@@ -101,6 +101,9 @@ public:
     Vmod_mem_cache_set_associative *cache;
     ModuleRAM *ram;
 
+    bool prev_memory_write_o;
+    bool prev_memory_read_o;
+
     TB(){
         
         Verilated::traceEverOn(true); 
@@ -135,15 +138,18 @@ public:
     virtual void reset(void)
     {
         cache->rst_i = 1;
-        this->tick();
+        this->tick(0);
         cache->rst_i = 0;
     }
 
-    virtual void tick(void)
+    virtual void tick(bool stall_ram)
     {
         // Make sure the tickcount is greater than zero before
         // we do this
         m_tickcount++;
+
+        this->prev_memory_read_o = cache->memory_read_o;
+        this->prev_memory_write_o = cache->memory_write_o;
 
         // Allow any combinatorial logic to settle before we tick
         // the clock.  This becomes necessary in the case where
@@ -197,9 +203,9 @@ public:
             cache->read_i = 0b0,
             cache->write_i = 0b1,
             cache->byteenable_i = 0b1111;
-            this->tick();
+            this->tick(0);
         }
-        this->tick();
+        this->tick(0);
     }
     void read_cache(uint32_t address_i){
         while(!cache->stb_o){
@@ -207,9 +213,9 @@ public:
             cache->read_i = 0b1,
             cache->write_i = 0b0,
             cache->byteenable_i = 0b1111;
-            this->tick();
+            this->tick(0);
         }
-        this->tick();
+        this->tick(0);
         std::cout<<cache->readdata_o<<std::endl;
     }
     void init_cache(){
@@ -225,22 +231,42 @@ int main(int argc, char** argv)
     std::cout << "Beginning simulation...\n";
     TB *tb = new TB;
     tb->opentrace("trace.vcd");
-    // case 1: read miss and write back dirty cache line 
+    // case 1: read hit
     // tb->reset();
     // tb->init_cache();
     // tb->read_cache(0x4);
+
+    // case 2: write hit
+    // tb->reset();
+    // tb->init_cache();
     // tb->write_cache(0x4,0xFFFFFFFF);
-    // tb->read_cache(0x4);
+
+    // case 3: read miss without need to writeback
+    // tb->reset();
+    // tb->init_cache();
+    // tb->read_cache(0x84);
+
+    // case 4: write miss without need to writeback
+    // tb->reset();
+    // tb->init_cache();
+    // tb->write_cache(0x84,0xFFFFFFFF);
+
+    // case 5: read miss and write back dirty cache line 
+    // tb->reset();
+    // tb->init_cache();
+    // tb->write_cache(0x4,0xFFFFFFFF);
     // tb->read_cache(0x44);
     // tb->read_cache(0x84);
     // tb->read_cache(0x4);
-    // case 2: write miss and write back dirty cache line 
+
+    // case 6: write miss and write back dirty cache line 
     tb->reset();
     tb->init_cache();
     tb->write_cache(0x4,0xFFFFFFFF);
     tb->read_cache(0x44);
     tb->write_cache(0x84,0x0F0F0F0F);
     tb->read_cache(0x4);
+
     tb->close();
     std::cout << "Ending simulation...\n";
 

@@ -211,7 +211,7 @@ public:
         std::vector<uint8_t> ram_buf;
         load_ram_file(hex_instruction_filepath, ram_buf);
         ram->load(ram_buf);
-        ram->display();
+        //ram->display();
 
         ram->destroy_on_read_with_byteenable = destroy_on_read_with_byteenable;
         if (destroy_on_read_with_byteenable)
@@ -313,7 +313,7 @@ uint32_t simulate(std::string hex_filepath)
     //and returns a pointer to the C string that is associated with the matched environment list member
     bool destroyOnReadWithByteEnable = destroyByteEnableEnv != NULL;
     TB *tb = new TB(hex_filepath, destroyOnReadWithByteEnable);
-    tb->opentrace("trace.vcd");
+    tb->opentrace("cputrace.vcd");
     tb->reset();
 
     while (!tb->done())

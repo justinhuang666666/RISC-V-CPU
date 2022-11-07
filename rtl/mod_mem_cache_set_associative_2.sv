@@ -1,7 +1,7 @@
 `include "system_defines.svh"
 
 // Implements a 2-way set associative, LRU, write-through cache.
-module mod_mem_cache_set_associative (
+module mod_mem_cache_set_associative_2 (
     input logic clk_i,
     input logic rst_i,
     // Aborts a read operation by discarding the next result after
@@ -41,7 +41,7 @@ module mod_mem_cache_set_associative (
         UPDATECACHE,
         DONE
     }
-        current_state, next_state;
+        state;
 
     // The number of bits used to identify which cache bank (row) to use.
     // localparam CACHE_BANK_BITS = 5;
@@ -90,14 +90,14 @@ module mod_mem_cache_set_associative (
 
     assign address_o = address_q;
 
-    assign stb_o = (current_state == DONE);//TODO: change to data_valid
-    assign busy_o = (current_state != IDLE);
+    assign stb_o = (state == DONE);//TODO: change to data_valid
+    assign busy_o = (state != IDLE);
 
     // The cache memory.  
     cache_set_t [CACHE_SET_ENTRIES-1:0] cache_sets;
     logic [CACHE_SET_BITS-1:0] cache_set_index;
     //register address_i
-    assign cache_set_index = (current_state == IDLE) ? address_i[CACHE_SET_BITS-1+2:2] : memory_address_reg[CACHE_SET_BITS-1+2:2];
+    assign cache_set_index = (state == IDLE) ? address_i[CACHE_SET_BITS-1+2:2] : memory_address_reg[CACHE_SET_BITS-1+2:2];
 
     // The cache rows which corresponds to the set index in the address.
     // cache_row_t cache_row_1, cache_row_2;
@@ -138,7 +138,7 @@ module mod_mem_cache_set_associative (
 
     // The tag bits of the supplied address.
     logic [CACHE_TAG_BITS-1:0] address_tag;
-    assign address_tag = current_state == IDLE ? address_i[31-:CACHE_TAG_BITS] : memory_address_reg[31-:CACHE_TAG_BITS];
+    assign address_tag = state == IDLE ? address_i[31-:CACHE_TAG_BITS] : memory_address_reg[31-:CACHE_TAG_BITS];
 
     //hit?
     logic hit_row_1, hit_row_2, hit;
@@ -156,87 +156,6 @@ module mod_mem_cache_set_associative (
         end
     end
 
-    // Update state machine state.
-    always_ff @(posedge clk_i) begin
-        if (rst_i) begin
-            current_state <= IDLE;
-        end else begin
-            current_state <= next_state;
-        end
-    end
-
-    // Update next state machine state.
-    always_comb begin
-        case (current_state)
-            IDLE: begin
-                if (write_i) begin
-                    next_state = WRITE;
-                end 
-                else if (read_i) begin
-                    next_state = READ;
-                end 
-                else begin
-                    next_state = IDLE;
-                end
-            end
-            READ: begin
-                case(hit)
-                    1'b0: begin
-                        if(valid & dirty) begin
-                            next_state = UPDATEMM;
-                        end 
-                        else begin
-                            next_state = READMM;
-                        end
-                    end
-                    1'b1: begin
-                        next_state = DONE;
-                    end
-                endcase
-            end
-            WRITE: begin
-                case(hit)
-                    1'b0: begin
-                        if(valid & dirty) begin
-                            next_state = UPDATEMM;
-                        end 
-                        else begin
-                            next_state = READMM;
-                        end
-                    end
-                    1'b1: begin
-                        next_state = DONE;
-                    end
-                endcase
-            end
-            READMM: begin
-                if(memory_operation_stb_i) begin
-                    next_state = UPDATECACHE;
-                end 
-                else begin
-                    next_state = READMM;
-                end
-            end
-            UPDATEMM: begin
-                if(memory_operation_stb_i) begin
-                    next_state = READMM;
-                end 
-                else begin
-                    next_state = UPDATEMM;
-                end
-            end
-            UPDATECACHE: begin
-                next_state = DONE;
-            end
-            DONE: begin
-                next_state = IDLE;
-            end
-            default: begin
-                next_state = IDLE;
-            end
-        endcase
-    end
-
     always_ff @(posedge clk_i) begin
         if (rst_i) begin
             memory_address_reg <= 0;
@@ -250,26 +169,38 @@ module mod_mem_cache_set_associative (
             address_q  <= 0;
             readdata_q <= 0;
 
+            state <= IDLE;
             rdwr <= 1'b1;
         end 
         else begin
-            case (next_state)
+            case (state)
                 IDLE: begin
                     $display(" ");
                     $display("IDLE");
+                    memory_address_reg <= address_i;
+
                     memory_address_q <= 0;
                     memory_writedata_q <= 0;
                     memory_byteenable_q <= 0;
                     memory_read_q <= 0;
                     memory_write_q <= 0;
 
-                    // address_q  <= 0;
-                    // readdata_q <= 0;
+                    address_q  <= 0;
+                    readdata_q <= 0;
+
+                    if(read_i) begin
+                        state	<= READ;
+                        rdwr	<= 1'd1;
+                    end 
+                    else if(write_i) begin
+                        state	<= WRITE;
+                        rdwr	<= 1'd0;
+					end 
+                    else begin
+						state	<= state;
+					end
                 end
                 READ: begin
-                    rdwr	<= 1'd1;
-                    memory_address_reg <= address_i;
-
                     $display(" ");
                     $display("READ");
                     memory_address_q <= 0;
@@ -280,21 +211,35 @@ module mod_mem_cache_set_associative (
 
                     address_q <= 0;
                     readdata_q <= 0;
-                    if(hit) begin
-                        if(hit_row_1) begin
-                            cache_sets[cache_set_index].row1.used <= 1'b1;
-                            cache_sets[cache_set_index].row2.used <= 1'b0;
-                        end 
-                        else begin
-                            cache_sets[cache_set_index].row1.used <= 1'b0;
-                            cache_sets[cache_set_index].row2.used <= 1'b1;
+                    case(hit)
+                        //read miss
+                        1'b0: begin
+                            //write back cache line to MM
+                            if(valid & dirty) begin
+                                state <= UPDATEMM;
+                            end 
+                            else begin
+                                state <= READMM;
+                            end
                         end
-                    end
+                        //read hit
+                        1'b1: begin
+                            state <= DONE;
+                            //hit row 1
+                            //update used bit
+                            if(hit_row_1) begin
+                                cache_sets[cache_set_index].row1.used <= 1'b1;
+                                cache_sets[cache_set_index].row2.used <= 1'b0;
+                            //hit row 2 
+                            end 
+                            else begin
+                                cache_sets[cache_set_index].row1.used <= 1'b0;
+                                cache_sets[cache_set_index].row2.used <= 1'b1;
+                            end
+                        end
+                    endcase
                 end
                 WRITE: begin
-                    rdwr	<= 1'd0;
-                    memory_address_reg <= address_i;
-
                     $display(" ");
                     $display("WRITE");
                     memory_address_q <= 0;
@@ -305,27 +250,42 @@ module mod_mem_cache_set_associative (
 
                     address_q <= 0;
                     readdata_q <= 0;
-
-                    if(hit)begin
-                        if(hit_row_1) begin
-                            cache_sets[cache_set_index].row1.valid <= 1'b1;
-                            cache_sets[cache_set_index].row1.used <= 1'b1;
-                            cache_sets[cache_set_index].row1.dirty <= 1'b1;
-                            cache_sets[cache_set_index].row1.tag <= address_tag;
-                            cache_sets[cache_set_index].row1.data <= writedata_i;
-
-                            cache_sets[cache_set_index].row2.used <= 1'b0;
-                        end 
-                        else begin
-                            cache_sets[cache_set_index].row2.valid <= 1'b1;
-                            cache_sets[cache_set_index].row2.used <= 1'b1;
-                            cache_sets[cache_set_index].row2.dirty <= 1'b1;
-                            cache_sets[cache_set_index].row2.tag <= address_tag;
-                            cache_sets[cache_set_index].row2.data <= writedata_i;
-
-                            cache_sets[cache_set_index].row1.used <= 1'b0;
+                    case(hit)
+                        //write miss
+                        1'b0: begin
+                            //write back cache line to MM
+                            if(valid & dirty) begin
+                                state <= UPDATEMM;
+                            end 
+                            else begin
+                                state <= READMM;
+                            end
                         end
-                    end
+                        //write hit
+                        1'b1: begin
+                            state <= DONE;
+                            //hit row 1
+                            //update used bit
+                            if(hit_row_1) begin
+                                cache_sets[cache_set_index].row1.valid <= 1'b1;
+                                cache_sets[cache_set_index].row1.used <= 1'b1;
+                                cache_sets[cache_set_index].row1.dirty <= 1'b1;
+                                cache_sets[cache_set_index].row1.tag <= address_tag;
+                                cache_sets[cache_set_index].row1.data <= writedata_i;
+
+                                cache_sets[cache_set_index].row2.used <= 1'b0;
+                            end 
+                            else begin
+                                cache_sets[cache_set_index].row2.valid <= 1'b1;
+                                cache_sets[cache_set_index].row2.used <= 1'b1;
+                                cache_sets[cache_set_index].row2.dirty <= 1'b1;
+                                cache_sets[cache_set_index].row2.tag <= address_tag;
+                                cache_sets[cache_set_index].row2.data <= writedata_i;
+
+                                cache_sets[cache_set_index].row1.used <= 1'b0;
+                            end
+                        end
+                    endcase
                 end
                 READMM: begin
                     memory_address_q <= memory_address_reg;
@@ -336,6 +296,13 @@ module mod_mem_cache_set_associative (
 
                     address_q <= 0;
                     readdata_q <= 0;
+
+                    if(memory_operation_stb_i) begin
+                        state <= UPDATECACHE;
+                    end 
+                    else begin
+                        state <= state;
+                    end
                     $display(" ");
                     $display("READMM");
                 end
@@ -356,6 +323,13 @@ module mod_mem_cache_set_associative (
                         memory_byteenable_q <= byteenable_i;
                         memory_read_q <= 0;
                         memory_write_q <= 1;
+                    end
+
+                    if(memory_operation_stb_i) begin
+                        state <= READMM;
+                    end 
+                    else begin
+                        state <= state;
                     end
                     $display(" ");
                     $display("UPDATEMM");
@@ -414,6 +388,7 @@ module mod_mem_cache_set_associative (
                         end
                     end
 
+                    state <= DONE;
                     $display(" ");
                     $display("UPDATECACHE");
                     // for (int i = 0; i < $size(cache_sets); i++) begin
@@ -440,7 +415,7 @@ module mod_mem_cache_set_associative (
                         address_q <= 0;
                         readdata_q <= 0;
                     end
-                    
+                    state <= IDLE;
                     $display(" ");
                     $display("DONE");
                     for (int i = 0; i < $size(cache_sets); i++) begin
@@ -460,8 +435,11 @@ module mod_mem_cache_set_associative (
 
                     address_q <= 0;
                     readdata_q <= 0;
+
+                    state <= IDLE;
                 end
             endcase
         end
     end
 endmodule
+
